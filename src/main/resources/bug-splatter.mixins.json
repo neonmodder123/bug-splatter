@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"package": "salty5844.bugsplatter.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

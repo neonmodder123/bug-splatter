@@ -1,0 +1,42 @@
+{
+	"schemaVersion": 1,
+	"id": "bug-splatter",
+	"version": "${version}",
+	"name": "Bug Splatter",
+	"description": "Add a little protein to low altitude flight",
+	"authors": [
+		"salty5844 (Taylor Kerr)"
+	],
+	"contributors": [
+		"Ciera Marshall",
+		"Zoey Smith"
+	],
+	"contact": {
+		"homepage": "https://modrinth.com/mod/bug-splatter/",
+		"sources": "https://github.com/salty5844/bug-splatter"
+	},
+	"license": "MIT",
+	"icon": "assets/bug-splatter/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"main": [
+			"salty5844.bugsplatter.BugSplatter"
+		],
+		"client": [
+			"salty5844.bugsplatter.client.BugSplatterClient"
+		]
+	},
+	"mixins": [
+		"bug-splatter.mixins.json",
+		{
+			"config": "bug-splatter.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": "~26.1.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
