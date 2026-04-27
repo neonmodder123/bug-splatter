@@ -1,0 +1,50 @@
+# gradle
+
+.gradle/
+build/
+out/
+classes/
+
+# eclipse
+
+*.launch
+
+# idea
+
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# vscode
+
+.settings/
+.vscode/
+bin/
+.classpath
+.project
+
+# macos
+
+*.DS_Store
+
+# fabric
+
+run/
+
+# java
+
+hs_err_*.log
+replay_*.log
+*.hprof
+*.jfr
+
+# local notes
+
+todo.txt
+tmp_ignore/
+
+# packaged artifacts (keep Gradle wrapper jar tracked)
+
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
