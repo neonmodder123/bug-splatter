@@ -4,7 +4,7 @@
 
 **Bug Splatter** adds satisfying bug splat effects to your HUD while gliding, giving low-altitude flying the visceral feeling it deserves.
 
----
+![banner](https://cdn.modrinth.com/data/cached_images/d2d91474c92fb5eb1c6639147907d62ed6328d9a_0.webp)
 
 ## How It Works
 
