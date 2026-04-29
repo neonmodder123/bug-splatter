@@ -4,7 +4,7 @@
 
 **Bug Splatter** adds satisfying bug splat effects to your HUD while gliding, giving low-altitude flying the visceral feeling it deserves.
 
-![banner](https://cdn.modrinth.com/data/cached_images/d2d91474c92fb5eb1c6639147907d62ed6328d9a_0.webp)
+![gif](https://raw.githubusercontent.com/salty5844/bug-splatter/refs/heads/main/gif.gif)
 
 ## How It Works
 
@@ -20,7 +20,7 @@ While gliding with an elytra, bugs will splatter across your screen when you're 
 Bug splats only occur in overworld biomes where insects would realistically exist. Snow biomes, oceans, and the void are excluded.
 
 | Category | Biomes |
-|---|---|
+| --- | --- |
 | **Plains** | Plains, Sunflower Plains |
 | **Forest** | Forest, Flower Forest, Birch Forest, Old Growth Birch Forest, Dark Forest |
 | **Taiga** | Taiga, Old Growth Pine Taiga, Old Growth Spruce Taiga |
@@ -30,3 +30,7 @@ Bug splats only occur in overworld biomes where insects would realistically exis
 | **Badlands** | Badlands, Eroded Badlands, Wooded Badlands |
 | **Hills & Peaks** | Windswept Hills, Windswept Gravelly Hills, Windswept Forest, Stony Peaks |
 | **Special** | Desert, Meadow, Cherry Grove, Grove, River, Beach, Stony Shore, Lush Caves, Pale Garden |
+
+#### If you like cosmetic mods like this, you should check out [my modpack!](https://www.salty5844.com/modpack)
+
+##### All original artwork, logos, and branding related to this project are © 2026 Taylor Kerr
