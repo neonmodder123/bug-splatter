@@ -1,6 +1,7 @@
 package salty5844.bugsplatter.client;
 
 import org.joml.Matrix3x2fStack;
+import org.jspecify.annotations.NonNull;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
@@ -18,6 +19,7 @@ import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.Level;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 
@@ -34,7 +36,7 @@ public class BugSplatterClient implements ClientModInitializer {
 	private static final float SPLAT_OVERLAP_PADDING = 2.0F;
 	private static final int GROUND_PROXIMITY_THRESHOLD = 10;
 	private static final int CLOSE_GROUND_THRESHOLD = 5;
-	private static final Set<ResourceKey<Biome>> ALLOWED_BIOMES = Set.of(
+	private static final Set<@NonNull ResourceKey<Biome>> ALLOWED_BIOMES = Set.of(
 		Biomes.PLAINS,
 		Biomes.SUNFLOWER_PLAINS,
 		Biomes.DESERT,
@@ -96,11 +98,12 @@ public class BugSplatterClient implements ClientModInitializer {
 
 	private void renderHud(GuiGraphicsExtractor graphics, DeltaTracker delta) {
 		Minecraft client = Minecraft.getInstance();
-		if (client.player == null) {
+		var player = client.player;
+		if (player == null) {
 			return;
 		}
 		boolean freezeForPause = shouldFreezeForPause(client);
-		boolean inWater = client.player.isInWater();
+		boolean inWater = player.isInWater();
 		long currentMillis = Util.getMillis();
 		long previousActiveMillis = lastActiveMillis;
 		long now;
@@ -124,8 +127,8 @@ public class BugSplatterClient implements ClientModInitializer {
 			spawnAccumulator = 0.0F;
 		}
 
-		if (!inWater && !freezeForPause && client.player.isFallFlying()) {
-			double speed = client.player.getDeltaMovement().length();
+		if (!inWater && !freezeForPause && player.isFallFlying()) {
+			double speed = player.getDeltaMovement().length();
 			if (speed >= MIN_SPEED_FOR_SPLATS
 				&& isInOverworld(client)
 				&& isInAllowedBiome(client)
@@ -174,7 +177,7 @@ public class BugSplatterClient implements ClientModInitializer {
 
 			graphics.blit(
 				RenderPipelines.GUI_TEXTURED,
-				splat.texture,
+				Objects.requireNonNull(splat.texture),
 				0, 0,
 				0, 0,
 				TEXTURE_SIZE, TEXTURE_SIZE,
@@ -279,18 +282,20 @@ public class BugSplatterClient implements ClientModInitializer {
 	}
 
 	private int getDistanceToGround(Minecraft client) {
-		if (client.level == null || client.player == null) {
+		var level = client.level;
+		var player = client.player;
+		if (level == null || player == null) {
 			return Integer.MAX_VALUE;
 		}
 
-		var playerPos = client.player.blockPosition();
+		var playerPos = player.blockPosition();
 		int playerX = playerPos.getX();
 		int playerY = playerPos.getY();
 		int playerZ = playerPos.getZ();
 
 		for (int dy = 0; dy <= GROUND_PROXIMITY_THRESHOLD; dy++) {
 			int checkY = playerY - dy;
-			var checkBlock = client.level.getBlockState(new BlockPos(playerX, checkY, playerZ));
+			var checkBlock = level.getBlockState(new BlockPos(playerX, checkY, playerZ));
 			if (!checkBlock.isAir()) {
 				return dy;
 			}
@@ -312,12 +317,14 @@ public class BugSplatterClient implements ClientModInitializer {
 	}
 
 	private boolean isInAllowedBiome(Minecraft client) {
-		if (client.level == null || client.player == null) {
+		var level = client.level;
+		var player = client.player;
+		if (level == null || player == null) {
 			return false;
 		}
 
-		var biome = client.level.getBiome(client.player.blockPosition());
-		for (ResourceKey<Biome> allowedBiome : ALLOWED_BIOMES) {
+		var biome = level.getBiome(player.blockPosition());
+		for (@NonNull ResourceKey<Biome> allowedBiome : ALLOWED_BIOMES) {
 			if (biome.is(allowedBiome)) {
 				return true;
 			}
@@ -327,12 +334,13 @@ public class BugSplatterClient implements ClientModInitializer {
 	}
 
 	private boolean isLookingInMovementDirection(Minecraft client) {
-		if (client.player == null) {
+		var player = client.player;
+		if (player == null) {
 			return false;
 		}
 
-		var lookAngle = client.player.getLookAngle();
-		var movement = client.player.getDeltaMovement();
+		var lookAngle = player.getLookAngle();
+		var movement = player.getDeltaMovement();
 
 		if (movement.lengthSqr() < 0.001) {
 			return true;
