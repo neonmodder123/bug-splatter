@@ -32,5 +32,3 @@ Bug splats only occur in overworld biomes where insects would realistically exis
 | **Special** | Desert, Meadow, Cherry Grove, Grove, River, Beach, Stony Shore, Lush Caves, Pale Garden |
 
 #### If you like cosmetic mods like this, you should check out [my modpack!](https://www.salty5844.com/modpack)
-
-##### All original artwork, logos, and branding related to this project are © 2026 Taylor Kerr
