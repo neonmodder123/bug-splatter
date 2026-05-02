@@ -1,13 +1,17 @@
+# eclipse
+
+*.launch
+
+# fabric
+
+run/
+
 # gradle
 
 .gradle/
 build/
-out/
 classes/
-
-# eclipse
-
-*.launch
+out/
 
 # idea
 
@@ -16,35 +20,32 @@ classes/
 *.ipr
 *.iws
 
-# vscode
+# java
 
-.settings/
-.vscode/
-bin/
-.classpath
-.project
+*.hprof
+*.jfr
+hs_err_*.log
+replay_*.log
+
+# local notes
+
+tmp_ignore/
+todo.txt
 
 # macos
 
 *.DS_Store
 
-# fabric
-
-run/
-
-# java
-
-hs_err_*.log
-replay_*.log
-*.hprof
-*.jfr
-
-# local notes
-
-todo.txt
-tmp_ignore/
-
 # packaged artifacts (keep Gradle wrapper jar tracked)
 
 *.jar
 !gradle/wrapper/gradle-wrapper.jar
+
+# vscode
+
+.classpath
+*.code-workspace
+.project
+.settings/
+.vscode/
+bin/

@@ -129,12 +129,13 @@ public class BugSplatterClient implements ClientModInitializer {
 
 		if (!inWater && !freezeForPause && player.isFallFlying()) {
 			double speed = player.getDeltaMovement().length();
+			int distanceToGround = getDistanceToGround(client);
 			if (speed >= MIN_SPEED_FOR_SPLATS
 				&& isInOverworld(client)
 				&& isInAllowedBiome(client)
-				&& isWithinGroundProximity(client)
+				&& distanceToGround <= GROUND_PROXIMITY_THRESHOLD
 				&& isLookingInMovementDirection(client)) {
-				float spawnRate = isWithinCloseGroundProximity(client) ? CLOSE_GROUND_SPAWN_RATE : SPAWNS_PER_SECOND;
+				float spawnRate = distanceToGround <= CLOSE_GROUND_THRESHOLD ? CLOSE_GROUND_SPAWN_RATE : SPAWNS_PER_SECOND;
 				spawnAccumulator += spawnRate * elapsedSeconds;
 				while (spawnAccumulator >= 1.0F) {
 					spawnSplat(width, height);
@@ -199,7 +200,7 @@ public class BugSplatterClient implements ClientModInitializer {
 			return false;
 		}
 
-		// True pause freeze only applies to local singleplayer worlds that are not opened to LAN.
+		// Keep splats static only for true singleplayer pause, not LAN-published worlds.
 		return !singleplayerServer.isPublished();
 	}
 
@@ -245,14 +246,15 @@ public class BugSplatterClient implements ClientModInitializer {
 			return;
 		}
 
-		BugSplat splat = new BugSplat();
-		splat.size = size;
-		splat.rotation = RANDOM.nextFloat() * 20.0F - 10.0F;
-		splat.flipX = RANDOM.nextBoolean();
-		splat.x = x;
-		splat.y = y;
-		splat.texture = TEXTURES[RANDOM.nextInt(TEXTURES.length)];
-		splat.spawnTime = Util.getMillis();
+		BugSplat splat = new BugSplat(
+			x,
+			y,
+			size,
+			RANDOM.nextFloat() * 20.0F - 10.0F,
+			RANDOM.nextBoolean(),
+			TEXTURES[RANDOM.nextInt(TEXTURES.length)],
+			Util.getMillis()
+		);
 
 		SPLATS.add(splat);
 		if (SPLATS.size() > MAX_SPLATS) {
@@ -302,14 +304,6 @@ public class BugSplatterClient implements ClientModInitializer {
 		}
 
 		return Integer.MAX_VALUE;
-	}
-
-	private boolean isWithinGroundProximity(Minecraft client) {
-		return getDistanceToGround(client) <= GROUND_PROXIMITY_THRESHOLD;
-	}
-
-	private boolean isWithinCloseGroundProximity(Minecraft client) {
-		return getDistanceToGround(client) <= CLOSE_GROUND_THRESHOLD;
 	}
 
 	private boolean isInOverworld(Minecraft client) {
