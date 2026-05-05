@@ -27,15 +27,22 @@ public class BugSplatterClient implements ClientModInitializer {
 
 	private static final String MOD_ID = "bug-splatter";
 	private static final long SPLAT_LIFETIME_MS = 2000L;
-	private static final int MAX_SPLATS = 40;
-	private static final int TEXTURE_SIZE = 128;
+	// Lower values create more distinct bursts as the screen fills and clears in waves; higher values produce a steadier stream.
+	private static final int MAX_SPLATS = 50;
 	private static final double MIN_SPEED_FOR_SPLATS = 1.0D;
-	private static final float SPAWNS_PER_SECOND = 15.0F;
-	private static final float CLOSE_GROUND_SPAWN_RATE = 30.0F;
+	private static final float BASE_SPAWN_RATE = 30.0F;
+	private static final float CLOSE_GROUND_SPAWN_RATE_MULTIPLIER = 2.0F;
+	private static final float SWAMP_SPAWN_RATE_MULTIPLIER = 1.5F;
+	private static final float BASE_EXPONENT = 2.0F;
 	private static final int MAX_SPAWN_ATTEMPTS = 40;
 	private static final float SPLAT_OVERLAP_PADDING = 2.0F;
 	private static final int GROUND_PROXIMITY_THRESHOLD = 10;
 	private static final int CLOSE_GROUND_THRESHOLD = 5;
+	private static final Set<@NonNull ResourceKey<Biome>> SWAMP_BIOMES = Set.of(
+		Biomes.SWAMP,
+		Biomes.MANGROVE_SWAMP
+	);
+
 	private static final Set<@NonNull ResourceKey<Biome>> ALLOWED_BIOMES = Set.of(
 		Biomes.PLAINS,
 		Biomes.SUNFLOWER_PLAINS,
@@ -73,18 +80,37 @@ public class BugSplatterClient implements ClientModInitializer {
 		Biomes.PALE_GARDEN
 	);
 
+	private record BugType(Identifier texture, int textureSize, float spawnRateMultiplier, float exponentMultiplier) {}
+
+	private static final BugType[] BUG_TYPES = new BugType[]{
+		// Tiny (16x16) — spawn rate multiplier 1.25, exponent multiplier 0.75
+		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/tiny-drain-fly.png"),  16, 1.25F, 0.75F),
+		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/tiny-fruit-fly.png"),  16, 1.25F, 0.75F),
+		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/tiny-gnat.png"),        16, 1.25F, 0.75F),
+		// Small (32x32) — spawn rate multiplier 1.0, exponent multiplier 1.0
+		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/small-housefly.png"),   32, 1.0F,  1.0F),
+		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/small-june-beetle.png"),32, 1.0F,  1.0F),
+		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/small-misquito.png"),   32, 1.0F,  1.0F),
+		// Medium (48x48) — spawn rate multiplier 0.75, exponent multiplier 1.25
+		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/medium-dragonfly.png"), 48, 0.75F, 1.25F),
+		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/medium-mantis.png"),    48, 0.75F, 1.25F),
+		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/medium-mayfly.png"),    48, 0.75F, 1.25F),
+		// Large (64x64) — spawn rate multiplier 0.25, exponent multiplier 1.75
+		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/large-bumblebee.png"),  64, 0.25F, 1.75F),
+		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/large-butterfly.png"),  64, 0.25F, 1.75F),
+		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/large-cicada.png"),     64, 0.25F, 1.75F)
+	};
+
+	private static final float BUG_TYPE_TOTAL_WEIGHT;
+	static {
+		float total = 0.0F;
+		for (BugType b : BUG_TYPES) total += b.spawnRateMultiplier();
+		BUG_TYPE_TOTAL_WEIGHT = total;
+	}
+
 	private static final List<BugSplat> SPLATS = new ArrayList<>();
 	private static final Random RANDOM = new Random();
 	private long lastActiveMillis = -1L;
-
-	private static final Identifier[] TEXTURES = new Identifier[]{
-		Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/large-brown-splat.png"),
-		Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/large-green-splat.png"),
-		Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/medium-brown-splat.png"),
-		Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/medium-green-splat.png"),
-		Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/small-brown-splat.png"),
-		Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/small-green-splat.png")
-	};
 
 	private float spawnAccumulator = 0.0F;
 
@@ -135,7 +161,13 @@ public class BugSplatterClient implements ClientModInitializer {
 				&& isInAllowedBiome(client)
 				&& distanceToGround <= GROUND_PROXIMITY_THRESHOLD
 				&& isLookingInMovementDirection(client)) {
-				float spawnRate = distanceToGround <= CLOSE_GROUND_THRESHOLD ? CLOSE_GROUND_SPAWN_RATE : SPAWNS_PER_SECOND;
+				float spawnRate = BASE_SPAWN_RATE;
+				if (distanceToGround <= CLOSE_GROUND_THRESHOLD) {
+					spawnRate *= CLOSE_GROUND_SPAWN_RATE_MULTIPLIER;
+				}
+				if (isInSwampBiome(client)) {
+					spawnRate *= SWAMP_SPAWN_RATE_MULTIPLIER;
+				}
 				spawnAccumulator += spawnRate * elapsedSeconds;
 				while (spawnAccumulator >= 1.0F) {
 					spawnSplat(width, height);
@@ -164,8 +196,8 @@ public class BugSplatterClient implements ClientModInitializer {
 			matrices.translate(splat.x, splat.y);
 
 			float half = splat.size / 2.0F;
-			float textureHalf = TEXTURE_SIZE / 2.0F;
-			float drawScale = splat.size / TEXTURE_SIZE;
+			float textureHalf = splat.textureSize / 2.0F;
+			float drawScale = splat.size / splat.textureSize;
 			matrices.translate(half, half);
 
 			if (splat.flipX) {
@@ -181,8 +213,8 @@ public class BugSplatterClient implements ClientModInitializer {
 				Objects.requireNonNull(splat.texture),
 				0, 0,
 				0, 0,
-				TEXTURE_SIZE, TEXTURE_SIZE,
-				TEXTURE_SIZE, TEXTURE_SIZE,
+				splat.textureSize, splat.textureSize,
+				splat.textureSize, splat.textureSize,
 				argb
 			);
 
@@ -205,12 +237,14 @@ public class BugSplatterClient implements ClientModInitializer {
 	}
 
 	private void spawnSplat(int width, int height) {
+		BugType bugType = pickBugType();
 		float centerX = width / 2.0F;
 		float centerY = height / 2.0F;
 
 		float maxRadius = Math.min(width, height) * 0.5F;
 		float deadZone = maxRadius * 0.3F;
-		float size = 48.0F * (0.9F + RANDOM.nextFloat() * 0.15F);
+		float size = bugType.textureSize() * (0.9F + RANDOM.nextFloat() * 0.15F);
+		float exponent = BASE_EXPONENT * bugType.exponentMultiplier();
 
 		float x = 0.0F;
 		float y = 0.0F;
@@ -229,7 +263,7 @@ public class BugSplatterClient implements ClientModInitializer {
 			}
 
 			float normalized = (distance - deadZone) / (maxRadius - deadZone);
-			float chance = normalized * normalized;
+			float chance = (float) Math.pow(normalized, exponent);
 			if (RANDOM.nextFloat() > chance) {
 				continue;
 			}
@@ -250,16 +284,29 @@ public class BugSplatterClient implements ClientModInitializer {
 			x,
 			y,
 			size,
-			RANDOM.nextFloat() * 20.0F - 10.0F,
+			RANDOM.nextFloat() * 360.0F,
 			RANDOM.nextBoolean(),
-			TEXTURES[RANDOM.nextInt(TEXTURES.length)],
+			bugType.texture(),
+			bugType.textureSize(),
 			Util.getMillis()
 		);
 
-		SPLATS.add(splat);
-		if (SPLATS.size() > MAX_SPLATS) {
-			SPLATS.remove(0);
+		if (SPLATS.size() >= MAX_SPLATS) {
+			return;
 		}
+		SPLATS.add(splat);
+	}
+
+	private BugType pickBugType() {
+		float roll = RANDOM.nextFloat() * BUG_TYPE_TOTAL_WEIGHT;
+		float cumulative = 0.0F;
+		for (BugType bugType : BUG_TYPES) {
+			cumulative += bugType.spawnRateMultiplier();
+			if (roll < cumulative) {
+				return bugType;
+			}
+		}
+		return BUG_TYPES[BUG_TYPES.length - 1];
 	}
 
 	private boolean overlapsExistingSplat(float x, float y, float size) {
@@ -308,6 +355,23 @@ public class BugSplatterClient implements ClientModInitializer {
 
 	private boolean isInOverworld(Minecraft client) {
 		return client.level != null && client.level.dimension().equals(Level.OVERWORLD);
+	}
+
+	private boolean isInSwampBiome(Minecraft client) {
+		var level = client.level;
+		var player = client.player;
+		if (level == null || player == null) {
+			return false;
+		}
+
+		var biome = level.getBiome(player.blockPosition());
+		for (@NonNull ResourceKey<Biome> swampBiome : SWAMP_BIOMES) {
+			if (biome.is(swampBiome)) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private boolean isInAllowedBiome(Minecraft client) {
