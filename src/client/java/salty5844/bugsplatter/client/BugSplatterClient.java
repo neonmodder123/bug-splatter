@@ -90,7 +90,7 @@ public class BugSplatterClient implements ClientModInitializer {
 		// Small (32x32) — spawn rate multiplier 1.0, exponent multiplier 1.0
 		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/small-housefly.png"),   32, 1.0F,  1.0F),
 		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/small-june-beetle.png"),32, 1.0F,  1.0F),
-		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/small-misquito.png"),   32, 1.0F,  1.0F),
+		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/small-mosquito.png"),   32, 1.0F,  1.0F),
 		// Medium (48x48) — spawn rate multiplier 0.75, exponent multiplier 1.25
 		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/medium-dragonfly.png"), 48, 0.75F, 1.25F),
 		new BugType(Identifier.fromNamespaceAndPath(MOD_ID, "textures/gui/medium-mantis.png"),    48, 0.75F, 1.25F),
