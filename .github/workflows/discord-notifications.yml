@@ -1,0 +1,143 @@
+name: Discord Notifications
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, closed]
+  issues:
+    types: [opened, reopened, closed]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  notify-discord:
+    if: ${{ secrets.DISCORD_WEBHOOK_URL != '' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Build Discord payload
+        id: payload
+        uses: actions/github-script@v7
+        with:
+          result-encoding: string
+          script: |
+            const repo = `${context.repo.owner}/${context.repo.repo}`;
+            const event = context.eventName;
+            const action = context.payload.action || "updated";
+
+            const colors = {
+              prOpened: 0x3fb950,
+              prUpdated: 0x1f6feb,
+              prClosed: 0xf85149,
+              prMerged: 0xa371f7,
+              issueOpened: 0x3fb950,
+              issueClosed: 0xf85149,
+              push: 0x1f6feb,
+              fallback: 0x6e7681,
+            };
+
+            function shortSha(sha) {
+              return sha ? sha.substring(0, 7) : "unknown";
+            }
+
+            function cap(text, max) {
+              if (!text) return "";
+              return text.length > max ? `${text.substring(0, max - 3)}...` : text;
+            }
+
+            let embed = {
+              title: `Repository update: ${repo}`,
+              color: colors.fallback,
+              timestamp: new Date().toISOString(),
+              footer: { text: repo },
+              fields: [],
+            };
+
+            if (event === "pull_request") {
+              const pr = context.payload.pull_request;
+              const merged = Boolean(pr.merged);
+
+              let status = action;
+              if (action === "closed" && merged) status = "merged";
+
+              const color = merged
+                ? colors.prMerged
+                : action === "closed"
+                  ? colors.prClosed
+                  : action === "opened" || action === "reopened"
+                    ? colors.prOpened
+                    : colors.prUpdated;
+
+              embed = {
+                ...embed,
+                title: `PR ${status}: #${pr.number} ${pr.title}`,
+                url: pr.html_url,
+                description: cap(pr.body || "No description provided.", 500),
+                color,
+                fields: [
+                  { name: "Author", value: pr.user.login, inline: true },
+                  { name: "Branch", value: `${pr.head.ref} -> ${pr.base.ref}`, inline: true },
+                  { name: "Action", value: action, inline: true },
+                ],
+              };
+            } else if (event === "issues") {
+              const issue = context.payload.issue;
+              const color = action === "closed" ? colors.issueClosed : colors.issueOpened;
+
+              embed = {
+                ...embed,
+                title: `Issue ${action}: #${issue.number} ${issue.title}`,
+                url: issue.html_url,
+                description: cap(issue.body || "No description provided.", 500),
+                color,
+                fields: [
+                  { name: "Author", value: issue.user.login, inline: true },
+                  { name: "State", value: issue.state, inline: true },
+                ],
+              };
+            } else if (event === "push") {
+              const p = context.payload;
+              const commitCount = Array.isArray(p.commits) ? p.commits.length : 0;
+              const compareUrl = p.compare || `https://github.com/${repo}`;
+              const branch = (p.ref || "refs/heads/unknown").replace("refs/heads/", "");
+
+              const topCommits = (p.commits || [])
+                .slice(0, 5)
+                .map(c => `- ${shortSha(c.id)} ${cap(c.message.split("\n")[0], 80)} (${c.author?.name || "unknown"})`)
+                .join("\n");
+
+              embed = {
+                ...embed,
+                title: `Push to ${branch}: ${commitCount} commit(s)`,
+                url: compareUrl,
+                description: topCommits || "No commit details available.",
+                color: colors.push,
+                fields: [
+                  { name: "Pusher", value: p.pusher?.name || "unknown", inline: true },
+                  { name: "Branch", value: branch, inline: true },
+                ],
+              };
+            }
+
+            const payload = {
+              username: "GitHub Actions",
+              embeds: [embed],
+            };
+
+            return JSON.stringify(payload);
+
+      - name: Send notification to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_PAYLOAD: ${{ steps.payload.outputs.result }}
+        run: |
+          printf '%s' "$DISCORD_PAYLOAD" > discord_payload.json
+
+          curl --fail --silent --show-error \
+            -H "Content-Type: application/json" \
+            -X POST \
+            --data @discord_payload.json \
+            "$DISCORD_WEBHOOK_URL"
